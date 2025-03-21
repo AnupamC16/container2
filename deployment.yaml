@@ -28,5 +28,3 @@ spec:
         - name: standard-volume
           persistentVolumeClaim:
             claimName: anupam-pvc
-      nodeSelector:
-        cloud.google.com/gke-nodepool: "primary-node-pool" # Make sure the pod runs on the correct pool
