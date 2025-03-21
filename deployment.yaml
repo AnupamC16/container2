@@ -22,7 +22,11 @@ spec:
           volumeMounts:
             - mountPath: /anupam_PV_dir
               name: standard-volume
+          ports:
+            - containerPort: 8000
       volumes:
         - name: standard-volume
           persistentVolumeClaim:
             claimName: anupam-pvc
+      nodeSelector:
+        cloud.google.com/gke-nodepool: "primary-node-pool" # Make sure the pod runs on the correct pool
