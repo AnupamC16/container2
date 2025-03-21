@@ -4,86 +4,84 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.logging.Logger;
 
 @RestController
 public class ProcessController {
 
-    private static final String MOUNTED_VOLUME_PATH = "/data"; // PV mount path, same as Container 1
+    private static final Logger LOGGER = Logger.getLogger(ProcessController.class.getName());
+    private static final String STORAGE_DIR = "/anupam_PV_dir"; // Updated to match container1's PV path
 
     @PostMapping("/process")
-    public ResponseEntity<Map<String, Object>> calculateProductSum(@RequestBody Map<String, String> request) {
+    public ResponseEntity<Map<String, Object>> process(@RequestBody Map<String, String> request) {
         Map<String, Object> response = new HashMap<>();
-
-        // Extract file content and product from the request
-        String fileContent = request.get("file_content");
+        String filename = request.get("file");
         String product = request.get("product");
 
-        // Validate input
-        if (fileContent == null || product == null || fileContent.trim().isEmpty() || product.trim().isEmpty()) {
-            response.put("error", "Invalid input: file content or product missing.");
+        LOGGER.info("B00990335_Anupam"); // Logging unique identifier
+
+        // Validate input JSON
+        if (filename == null || filename.trim().isEmpty() || product == null || product.trim().isEmpty()) {
+            response.put("file", filename);
+            response.put("error", "Invalid JSON input.");
             return ResponseEntity.badRequest().body(response);
         }
 
-        try {
-            // Parse the CSV content and calculate the sum
-            int totalSum = calculateSumFromCSV(fileContent, product);
+        File file = new File(STORAGE_DIR, filename);
 
-            // Return success response with the sum
-            response.put("sum", totalSum);
-            return ResponseEntity.ok(response);
-        } catch (IllegalArgumentException e) {
-            // Return error if CSV format is invalid
-            response.put("error", "input file not in CSV format.");
-            return ResponseEntity.badRequest().body(response);
-        } catch (Exception e) {
-            // Handle unexpected errors
-            response.put("error", "Error processing file content.");
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
-        }
-    }
-
-    private int calculateSumFromCSV(String fileContent, String targetProduct) {
-        // Split the content into lines
-        String[] lines = fileContent.split("\n");
-
-        // Check if the first line is a header and validate format
-        if (lines.length < 2 || !lines[0].trim().equals("product, amount")) {
-            throw new IllegalArgumentException("Invalid CSV header or insufficient data.");
+        // Check if file exists
+        if (!file.exists()) {
+            response.put("file", filename);
+            response.put("error", "File not found.");
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
         }
 
-        int sum = 0;
-        // Process each line starting from index 1 (skip header)
-        for (int i = 1; i < lines.length; i++) {
-            String line = lines[i].trim();
-            if (line.isEmpty()) {
-                continue; // Skip empty lines
+        try (BufferedReader br = new BufferedReader(new FileReader(file))) {
+            String header = br.readLine();
+            if (header == null || !header.trim().equals("product,amount")) {
+                response.put("file", filename);
+                response.put("error", "Input file not in CSV format.");
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
             }
 
-            // Split line into product and amount
-            String[] parts = line.split(",");
-            if (parts.length != 2) {
-                throw new IllegalArgumentException("Invalid CSV line format.");
-            }
+            int totalSum = 0;
+            String line;
+            while ((line = br.readLine()) != null) {
+                String[] parts = line.split(",");
+                if (parts.length != 2) {
+                    response.put("file", filename);
+                    response.put("error", "Input file not in CSV format.");
+                    return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+                }
 
-            String product = parts[0].trim();
-            String amountStr = parts[1].trim();
+                String rowProduct = parts[0].trim();
+                String amountStr = parts[1].trim();
 
-            // Validate and sum if the product matches
-            if (product.equalsIgnoreCase(targetProduct)) {
-                try {
-                    int amount = Integer.parseInt(amountStr);
-                    sum += amount;
-                } catch (NumberFormatException e) {
-                    throw new IllegalArgumentException("Amount is not a valid integer.");
+                if (rowProduct.equalsIgnoreCase(product)) {
+                    try {
+                        totalSum += Integer.parseInt(amountStr);
+                    } catch (NumberFormatException e) {
+                        response.put("file", filename);
+                        response.put("error", "Input file not in CSV format.");
+                        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+                    }
                 }
             }
-        }
 
-        return sum;
+            response.put("file", filename);
+            response.put("sum", totalSum);
+            return ResponseEntity.ok(response);
+
+        } catch (IOException e) {
+            response.put("file", filename);
+            response.put("error", "Error processing file.");
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+        }
     }
 }
