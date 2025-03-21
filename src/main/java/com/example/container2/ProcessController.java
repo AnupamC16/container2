@@ -16,7 +16,7 @@ import java.util.logging.Logger;
 public class ProcessController {
 
     private static final Logger LOGGER = Logger.getLogger(ProcessController.class.getName());
-    private static final String STORAGE_DIR = "/anupam_PV_dir"; // Updated to match container1's PV path
+    private static final String STORAGE_DIR = "/anupam_PV_dir";
 
     @PostMapping("/process")
     public ResponseEntity<Map<String, Object>> process(@RequestBody Map<String, String> request) {
@@ -24,9 +24,8 @@ public class ProcessController {
         String filename = request.get("file");
         String product = request.get("product");
 
-        LOGGER.info("B00990335_Anupam"); // Logging unique identifier
+        LOGGER.info("B00990335_Anupam");
 
-        // Validate input JSON
         if (filename == null || filename.trim().isEmpty() || product == null || product.trim().isEmpty()) {
             response.put("file", filename);
             response.put("error", "Invalid JSON input.");
