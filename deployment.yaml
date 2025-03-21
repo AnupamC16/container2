@@ -1,0 +1,28 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: container-2
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: container-2
+  template:
+    metadata:
+      labels:
+        app: container-2
+    spec:
+      tolerations:
+        - key: "node.kubernetes.io/disk-pressure"
+          operator: "Exists"
+          effect: "NoSchedule"
+      containers:
+        - name: container-2
+          image: us-central1-docker.pkg.dev/my-gke-project-454300/microservices-repo/container2:latest
+          volumeMounts:
+            - mountPath: /anupam_PV_dir
+              name: standard-volume
+      volumes:
+        - name: standard-volume
+          persistentVolumeClaim:
+            claimName: anupam-pvc
