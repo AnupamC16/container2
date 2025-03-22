@@ -57,7 +57,7 @@ public class ProcessController {
                             || !columns[1].trim().equalsIgnoreCase("amount")) {
                         response.put("file", filename);
                         response.put("error", "Input file not in CSV format.");
-                        return ResponseEntity.badRequest().body(response);
+                        return ResponseEntity.ok(response);
                     }
                     continue;
                 }
