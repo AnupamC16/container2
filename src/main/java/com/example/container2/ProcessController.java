@@ -59,7 +59,7 @@ public class ProcessController {
                     if (columns.length != 2 || !columns[0].trim().equalsIgnoreCase("product")
                             || !columns[1].trim().equalsIgnoreCase("amount")) {
                         response.put("file", filename);
-                        response.put("error", "Input file not in CSV format.");
+                        response.put("error", "Input file not in CSV format..");
                         return ResponseEntity.badRequest().body(response);
                     }
                     continue; // Skip header
