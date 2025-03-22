@@ -5,8 +5,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileReader;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -55,24 +53,21 @@ public class ProcessController {
 
                 if (isFirstLine) {
                     isFirstLine = false;
-                    // ✅ Check if header is valid
                     if (columns.length != 2 || !columns[0].trim().equalsIgnoreCase("product")
                             || !columns[1].trim().equalsIgnoreCase("amount")) {
                         response.put("file", filename);
-                        response.put("error", "Input file not in CSV format..");
+                        response.put("error", "Input file not in CSV format.");
                         return ResponseEntity.badRequest().body(response);
                     }
-                    continue; // Skip header
+                    continue;
                 }
 
-                // ✅ Ensure correct row format
                 if (columns.length != 2) {
                     response.put("file", filename);
                     response.put("error", "Input file not in CSV format.");
                     return ResponseEntity.badRequest().body(response);
                 }
 
-                // ✅ Process data
                 if (columns[0].trim().equalsIgnoreCase(product)) {
                     try {
                         total += Integer.parseInt(columns[1].trim());
