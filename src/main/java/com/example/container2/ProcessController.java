@@ -8,6 +8,9 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.Logger;
@@ -24,62 +27,71 @@ public class ProcessController {
         String filename = request.get("file");
         String product = request.get("product");
 
-        LOGGER.info("B00990335_Anupam");
+        System.out.println("B00990999_anupam"); // ✅ Updated log message
 
+        // ✅ Validate input
         if (filename == null || filename.trim().isEmpty() || product == null || product.trim().isEmpty()) {
-            response.put("file", filename);
             response.put("error", "Invalid JSON input.");
             return ResponseEntity.badRequest().body(response);
         }
 
-        File file = new File(STORAGE_DIR, filename);
+        Path filepath = Paths.get(STORAGE_DIR, filename);
 
-        // Check if file exists or not
-        if (!file.exists()) {
+        // ✅ Check if file exists
+        if (!Files.exists(filepath)) {
             response.put("file", filename);
             response.put("error", "File not found.");
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+            return ResponseEntity.badRequest().body(response);
         }
 
-        try (BufferedReader br = new BufferedReader(new FileReader(file))) {
-            String header = br.readLine();
-            if (header == null || !header.trim().equals("product,amount")) {
-                response.put("file", filename);
-                response.put("error", "Input file not in CSV format.");
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
-            }
+        int total = 0;
 
-            int totalSum = 0;
+        try (BufferedReader br = Files.newBufferedReader(filepath)) {
             String line;
+            boolean isFirstLine = true;
+
             while ((line = br.readLine()) != null) {
-                String[] parts = line.split(",");
-                if (parts.length != 2) {
-                    response.put("file", filename);
-                    response.put("error", "Input file not in CSV format.");
-                    return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+                String[] columns = line.split(",");
+
+                if (isFirstLine) {
+                    isFirstLine = false;
+                    // ✅ Check if header is valid
+                    if (columns.length != 2 || !columns[0].trim().equalsIgnoreCase("product")
+                            || !columns[1].trim().equalsIgnoreCase("amount")) {
+                        response.put("file", filename);
+                        response.put("error", "Input file not in CSV format.");
+                        return ResponseEntity.badRequest().body(response);
+                    }
+                    continue; // Skip header
                 }
 
-                String rowProduct = parts[0].trim();
-                String amountStr = parts[1].trim();
+                // ✅ Ensure correct row format
+                if (columns.length != 2) {
+                    response.put("file", filename);
+                    response.put("error", "Input file not in CSV format.");
+                    return ResponseEntity.badRequest().body(response);
+                }
 
-                if (rowProduct.equalsIgnoreCase(product)) {
+                // ✅ Process data
+                if (columns[0].trim().equalsIgnoreCase(product)) {
                     try {
-                        totalSum += Integer.parseInt(amountStr);
+                        total += Integer.parseInt(columns[1].trim());
                     } catch (NumberFormatException e) {
                         response.put("file", filename);
                         response.put("error", "Input file not in CSV format.");
-                        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+                        return ResponseEntity.badRequest().body(response);
                     }
                 }
             }
 
+            // ✅ Return final sum
             response.put("file", filename);
-            response.put("sum", totalSum);
+            response.put("sum", total);
             return ResponseEntity.ok(response);
 
         } catch (IOException e) {
             response.put("file", filename);
-            response.put("error", "Error processing file.");
+            response.put("error", "Error reading file.");
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
         }
     }
